@@ -7,8 +7,9 @@ import cairo, math, time
 import colorsys
 import os.path
 
-#Button size
+import configparser
 
+#Default Button size
 WIDTH = 200
 HEIGHT = 200
 
@@ -107,7 +108,6 @@ class JingleButton(Gtk.EventBox):
             self.player.set_state(Gst.State.NULL)
 
     def activate(self):
-        print("activated")
         self.active = True
         self.percentage = 0
         self.player.set_state(Gst.State.PLAYING)
@@ -141,47 +141,44 @@ class JingleButton(Gtk.EventBox):
 
 
 class JingleBank(Gtk.Window):
-    # Quit by pressing ESC
     def on_key_release(self, widget, ev, data=None):
+        # Quit by pressing ESC
         if ev.keyval == Gdk.KEY_Escape:
            Gtk.main_quit() 
 
-    def __init__(self, width, height):
+    def __init__(self):
         Gtk.Window.__init__(self, title="JingleBank")
 
         Gst.init(None)
+
+        #Read config file
+        cfg = configparser.ConfigParser()
+        cfg.read('settings.cfg')
 
         #Grid to organize the Buttons
         self.grid = Gtk.Grid()
         self.add(self.grid)
 
         #Set Button properties (will be replaced by configurable button dimensions)
-        self.buttonwidth = width
-        self.buttonheight = height
+        self.buttonwidth = int(cfg["GUI"]["ButtonWidth"])
+        self.buttonheight = int(cfg["GUI"]["ButtonHeight"])
 
-        #create buttons (will be read from configfile in the future)
-        self.button1 = JingleButton(self.buttonwidth, self.buttonheight, [0.3,0.7,0.9], "Track 1", TESTFILE)
-        self.button2 = JingleButton(self.buttonwidth, self.buttonheight, [0.4,0.6,0.4], "Track 2", TESTFILE)
-        self.button3 = JingleButton(self.buttonwidth, self.buttonheight, [0.5,0.5,0.3], "Track 3", TESTFILE)
-        self.button4 = JingleButton(self.buttonwidth, self.buttonheight, [0.6,0.4,0.2], "Track 4", TESTFILE)
-        self.button5 = JingleButton(self.buttonwidth, self.buttonheight, [0.7,0.3,0.4], "Track 5", TESTFILE)
-        self.button6 = JingleButton(self.buttonwidth, self.buttonheight, [0.8,0.2,0.3], "Track 6", TESTFILE)
-        self.button7 = JingleButton(self.buttonwidth, self.buttonheight, [0.9,0.1,0.8], "Track 7", TESTFILE)
-
-        #testarray of buttons
-        self.grid.attach(self.button1, 1, 1, 1, 1)
-        self.grid.attach(self.button2, 1, 2, 1, 1)
-        self.grid.attach(self.button3, 2, 1, 1, 1)
-        self.grid.attach(self.button4, 2, 2, 1, 1)
-        self.grid.attach(self.button5, 3, 1, 1, 1)
-        self.grid.attach(self.button6, 3, 2, 1, 1)
-        self.grid.attach(self.button7, 3, 3, 1, 1)
-
+        #Filter for JINGLE sections in config and create for each a button
+        buttons = ( x for x in cfg.sections() if x.startswith('JINGLE') )
+        for jingle in buttons:
+            btncfg = cfg[jingle]
+            self.grid.attach( JingleButton(self.buttonwidth, self.buttonheight, 
+                [float(btncfg["ColorR"]),float(btncfg["ColorG"]),float(btncfg["ColorB"])],
+                btncfg["Title"], btncfg["File"]), 
+                int(btncfg["PosX"]), int(btncfg["PosY"]), 1, 1)
+        
+        #Key release handler
         self.connect("key-release-event", self.on_key_release)
 
 
 if __name__=="__main__":
-    win = JingleBank(WIDTH, HEIGHT)
+
+    win = JingleBank()
     win.connect("delete-event", Gtk.main_quit)
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
