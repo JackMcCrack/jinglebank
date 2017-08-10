@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-
-from gi.repository import Gtk, GObject, Gst
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gst', '1.0')
+from gi.repository import Gtk, GObject, Gst, Gdk
 import cairo, math, time
 import colorsys
 import os.path
@@ -10,7 +12,7 @@ import os.path
 WIDTH = 200
 HEIGHT = 200
 
-TESTFILE = os.path.join("testraffel", "hauptuhr.mp3")
+TESTFILE = os.path.join("test1.mp3")
 
 class JingleButton(Gtk.EventBox):
 
@@ -94,6 +96,7 @@ class JingleButton(Gtk.EventBox):
                 self.drawarea.queue_draw()
                 return True
 
+
     # called when the button is clicked
     def on_clicked(self, widget, event, data):
         if self.active == False:
@@ -104,6 +107,7 @@ class JingleButton(Gtk.EventBox):
             self.player.set_state(Gst.State.NULL)
 
     def activate(self):
+        print("activated")
         self.active = True
         self.percentage = 0
         self.player.set_state(Gst.State.PLAYING)
@@ -137,11 +141,15 @@ class JingleButton(Gtk.EventBox):
 
 
 class JingleBank(Gtk.Window):
+    # Quit by pressing ESC
+    def on_key_release(self, widget, ev, data=None):
+        if ev.keyval == Gdk.KEY_Escape:
+           Gtk.main_quit() 
 
     def __init__(self, width, height):
         Gtk.Window.__init__(self, title="JingleBank")
 
-        Gst.init()
+        Gst.init(None)
 
         #Grid to organize the Buttons
         self.grid = Gtk.Grid()
@@ -169,9 +177,10 @@ class JingleBank(Gtk.Window):
         self.grid.attach(self.button6, 3, 2, 1, 1)
         self.grid.attach(self.button7, 3, 3, 1, 1)
 
+        self.connect("key-release-event", self.on_key_release)
+
 
 if __name__=="__main__":
-
     win = JingleBank(WIDTH, HEIGHT)
     win.connect("delete-event", Gtk.main_quit)
     win.connect("destroy", Gtk.main_quit)
